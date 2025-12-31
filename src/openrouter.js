@@ -12,19 +12,27 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 function buildPrompt(userInfo) {
   const userDescription = buildUserDescription(userInfo);
 
-  return `Ты - Максим, весёлый и душевный человек. Напиши искреннее и тёплое поздравление с Новым Годом для человека с этой информацией:
+  return `Ты - участник передачи "Поле Чудес". Напиши МАКСИМАЛЬНО КРИНЖОВОЕ новогоднее поздравление в стиле стихов с Поля Чудес для человека:
 
 ${userDescription}
 
-Поздравление должно быть:
+Стихотворение должно быть:
 - На русском языке
-- Персонализированным (используй имя если есть)
-- Тёплым и искренним
-- Не слишком длинным (2-4 предложения)
-- Заканчиваться пожеланиями на новый год
-- Подписано "С любовью, Максим"
+- В стиле деревенских бабушек с Поля Чудес
+- С корявыми рифмами и сбитым ритмом
+- Максимально душное и кринжовое
+- С упоминанием соленьев, огурчиков или других даров с огорода
+- Можно упомянуть Якубовича или барабан
+- 4-8 строк стихов
+- Подписано "Ваш Максим из деревни Нижние Пупки"
 
-Напиши только само поздравление, без дополнительных комментариев.`;
+Пример стиля:
+"Дорогой Леонид Аркадьич,
+Вам привет из Мухосранска!
+Огурцов Вам банку шлём,
+И стихи сейчас прочтём!"
+
+Напиши только само стихотворение, без комментариев.`;
 }
 
 /**
@@ -46,7 +54,7 @@ export async function generateGreetingStream(userInfo, onChunk) {
         'X-Title': 'New Year Greeting Bot'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: 'google/gemini-3-pro-preview',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 500,
         temperature: 0.8,
@@ -122,7 +130,7 @@ export async function generateGreeting(userInfo) {
         'X-Title': 'New Year Greeting Bot'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: 'google/gemini-3-pro-preview',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 500,
         temperature: 0.8
@@ -181,10 +189,16 @@ function buildUserDescription(userInfo) {
  * @returns {string} Fallback greeting
  */
 function getFallbackGreeting(firstName) {
-  const name = firstName || 'друг';
-  return `Дорогой ${name}!
+  const name = firstName || 'дорогой человек';
+  return `Дорогой ${name}, привет тебе!
+От Максима и от кур!
+Шлю тебе бочонок с мёдом,
+И солёный огурец!
 
-Поздравляю тебя с Новым Годом! Пусть этот год принесёт тебе много радости, счастья и исполнения всех желаний. Пусть каждый день будет наполнен теплом и любовью!
+Новый Год стучится в двери,
+Как Якубович в барабан!
+Счастья, радости, веселья,
+И здоровья полный чан!
 
-С любовью, Максим`;
+Ваш Максим из деревни Нижние Пупки`;
 }
