@@ -6,13 +6,13 @@ import 'dotenv/config';
 import { generateGreetingStream } from './openrouter.js';
 
 const testUser = {
-  firstName: 'Тест',
-  lastName: 'Тестович',
-  username: 'testuser',
+  firstName: 'Сергей',
+  lastName: 'Иванов',
+  username: 'sergey_ivanov',
   languageCode: 'ru'
 };
 
-console.log('Testing text generation with google/gemini-3-flash-preview...\n');
+console.log(`Testing with name: ${testUser.firstName} ${testUser.lastName}\n`);
 
 try {
   const greeting = await generateGreetingStream(testUser, (chunk) => {
