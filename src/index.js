@@ -5,8 +5,9 @@
 
 import 'dotenv/config';
 import express from 'express';
-import { sendMessage, sendTypingAction, editMessageText, extractUserInfo } from './telegram.js';
+import { sendMessage, sendTypingAction, editMessageText, sendAudio, sendChatAction, extractUserInfo } from './telegram.js';
 import { generateGreetingStream } from './openrouter.js';
+import { generateSong } from './suno.js';
 
 // Minimum time between message edits (Telegram rate limit protection)
 const EDIT_THROTTLE_MS = 500;
@@ -138,12 +139,118 @@ async function handleGreeting(userInfo) {
     await editMessageText(userInfo.chatId, messageId, finalGreeting);
 
     console.log('Greeting sent successfully');
+
+    // Now generate and send a personalized song
+    await handleSongGeneration(userInfo);
+
   } catch (error) {
     console.error('Error handling greeting:', error);
     await sendMessage(
       userInfo.chatId,
       'Извини, произошла ошибка. Попробуй ещё раз через минутку!'
     );
+  }
+}
+
+/**
+ * Handle song generation and sending
+ * @param {Object} userInfo - User information
+ */
+async function handleSongGeneration(userInfo) {
+  let statusMessageId = null;
+
+  try {
+    // Send status message
+    const statusMsg = await sendMessage(
+      userInfo.chatId,
+      '🎵 А теперь готовлю для тебя персональную песню...\n\nЭто займёт пару минут, подожди!'
+    );
+    statusMessageId = statusMsg.result.message_id;
+
+    // Status callback
+    const onStatus = async (status) => {
+      if (!statusMessageId) return;
+
+      const statusTexts = {
+        starting: '🎵 Начинаю создание песни...',
+        generating: '🎤 Генерирую музыку и вокал...\n\nЭто займёт 1-2 минуты.',
+        almost_done: '🎧 Почти готово! Финальная обработка...'
+      };
+
+      const text = statusTexts[status];
+      if (text) {
+        await editMessageText(userInfo.chatId, statusMessageId, text);
+      }
+    };
+
+    // Show upload audio action periodically
+    const actionInterval = setInterval(() => {
+      sendChatAction(userInfo.chatId, 'upload_voice');
+    }, 4000);
+
+    // Generate the song
+    const song = await generateSong(userInfo, onStatus);
+
+    clearInterval(actionInterval);
+
+    if (song && song.audioUrl) {
+      // Update status
+      await editMessageText(
+        userInfo.chatId,
+        statusMessageId,
+        '🎵 Песня готова! Отправляю...'
+      );
+
+      // Send the audio file
+      await sendAudio(userInfo.chatId, song.audioUrl, {
+        title: song.title,
+        performer: 'Максим (AI)',
+        caption: `🎄 ${song.title}\n\nС Новым Годом! 🎉`
+      });
+
+      // Delete status message
+      await deleteMessage(userInfo.chatId, statusMessageId);
+
+      console.log('Song sent successfully:', song.title);
+    } else {
+      // Song generation failed
+      await editMessageText(
+        userInfo.chatId,
+        statusMessageId,
+        '😔 К сожалению, не удалось создать песню. Но текстовое поздравление уже у тебя!'
+      );
+    }
+
+  } catch (error) {
+    console.error('Error generating song:', error);
+    if (statusMessageId) {
+      await editMessageText(
+        userInfo.chatId,
+        statusMessageId,
+        '😔 Не удалось создать песню, но поздравление уже отправлено!'
+      );
+    }
+  }
+}
+
+/**
+ * Delete a message
+ * @param {number} chatId - Chat ID
+ * @param {number} messageId - Message ID
+ */
+async function deleteMessage(chatId, messageId) {
+  try {
+    const response = await fetch(
+      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/deleteMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, message_id: messageId })
+      }
+    );
+    return response.json();
+  } catch (e) {
+    // Ignore delete errors
   }
 }
 

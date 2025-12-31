@@ -2,7 +2,13 @@ services:
   - type: web
     name: newyear-telegram-bot
     runtime: node
-    plan: free
+    plan: starter
+    numInstances: 1
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+      targetMemoryPercent: 80
+      targetCPUPercent: 80
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /
@@ -10,6 +16,8 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SUNO_API_KEY
         sync: false
       - key: WEBHOOK_URL
         sync: false

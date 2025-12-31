@@ -81,6 +81,16 @@ export async function editMessageText(chatId, messageId, text, options = {}) {
  * @returns {Promise<Object>} API response
  */
 export async function sendTypingAction(chatId) {
+  return sendChatAction(chatId, 'typing');
+}
+
+/**
+ * Send a chat action (typing, upload_audio, etc.)
+ * @param {number} chatId - Chat ID
+ * @param {string} action - Action type
+ * @returns {Promise<Object>} API response
+ */
+export async function sendChatAction(chatId, action) {
   const response = await fetch(`${getApiUrl()}/sendChatAction`, {
     method: 'POST',
     headers: {
@@ -88,11 +98,41 @@ export async function sendTypingAction(chatId) {
     },
     body: JSON.stringify({
       chat_id: chatId,
-      action: 'typing'
+      action
     })
   });
 
   return response.json();
+}
+
+/**
+ * Send an audio file to a chat
+ * @param {number} chatId - Chat ID
+ * @param {string} audioUrl - URL of the audio file (MP3)
+ * @param {Object} options - Additional options (title, performer, caption, etc.)
+ * @returns {Promise<Object>} API response
+ */
+export async function sendAudio(chatId, audioUrl, options = {}) {
+  const response = await fetch(`${getApiUrl()}/sendAudio`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      audio: audioUrl,
+      ...options
+    })
+  });
+
+  const data = await response.json();
+
+  if (!data.ok) {
+    console.error('Telegram sendAudio error:', data);
+    throw new Error(`Telegram API error: ${data.description}`);
+  }
+
+  return data;
 }
 
 /**
