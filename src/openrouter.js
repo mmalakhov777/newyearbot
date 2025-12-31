@@ -54,7 +54,7 @@ export async function generateGreetingStream(userInfo, onChunk) {
         'X-Title': 'New Year Greeting Bot'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'google/gemini-3-flash-preview',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 500,
         temperature: 0.8,
@@ -130,7 +130,7 @@ export async function generateGreeting(userInfo) {
         'X-Title': 'New Year Greeting Bot'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'google/gemini-3-flash-preview',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 500,
         temperature: 0.8
