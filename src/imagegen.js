@@ -51,7 +51,7 @@ export async function generateGreetingCard(userInfo) {
         'X-Title': 'New Year Greeting Bot'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-preview-image-generation',
+        model: 'google/gemini-2.5-flash-image',
         messages: [{ role: 'user', content: prompt }],
         modalities: ['image', 'text'],
         max_tokens: 1000
