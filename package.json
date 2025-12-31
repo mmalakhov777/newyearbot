@@ -1,0 +1,19 @@
+{
+  "name": "newyear-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot that generates personalized New Year greetings from Maxim",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "setup-webhook": "node src/setup-webhook.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}
