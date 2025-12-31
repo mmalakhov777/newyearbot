@@ -200,7 +200,7 @@ async function handleImageGeneration(userInfo) {
 
       // Send the image
       await sendPhoto(userInfo.chatId, imageUrl, {
-        caption: '🎄 Кринжовая открытка от Максима из деревни Нижние Пупки!'
+        caption: '🎄 Открытка от Максима ❤️'
       });
 
       console.log('Greeting card sent successfully');
