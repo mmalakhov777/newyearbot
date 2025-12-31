@@ -64,7 +64,7 @@ export async function generateSong(userInfo, onStatus) {
  * @returns {Promise<Object|null>} Song data or null
  */
 async function pollForCompletion(taskId, onStatus) {
-  const maxAttempts = 36; // 3 minutes (5 sec intervals)
+  const maxAttempts = 60; // 5 minutes (5 sec intervals)
   const pollInterval = 5000;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
