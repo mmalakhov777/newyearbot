@@ -13,6 +13,9 @@ import { generateSong } from './suno.js';
 // Minimum time between message edits (Telegram rate limit protection)
 const EDIT_THROTTLE_MS = 500;
 
+// Admin chat ID for analytics notifications
+const ADMIN_CHAT_ID = 321097981;
+
 const app = express();
 app.use(express.json());
 
@@ -91,6 +94,13 @@ async function handleStart(userInfo) {
  * @param {Object} userInfo - User information
  */
 async function handleGreeting(userInfo) {
+  const startTime = Date.now();
+  const results = {
+    text: { success: false, preview: '' },
+    image: { success: false },
+    song: { success: false, title: '' }
+  };
+
   try {
     // Show typing indicator
     await sendTypingAction(userInfo.chatId);
@@ -139,13 +149,18 @@ async function handleGreeting(userInfo) {
     // Final edit without cursor
     await editMessageText(userInfo.chatId, messageId, finalGreeting);
 
+    results.text.success = true;
+    results.text.preview = finalGreeting.substring(0, 100) + '...';
+
     console.log('Greeting sent successfully');
 
     // Now generate and send a cringy greeting card
-    await handleImageGeneration(userInfo);
+    results.image.success = await handleImageGeneration(userInfo);
 
     // Then generate and send a personalized song
-    await handleSongGeneration(userInfo);
+    const songResult = await handleSongGeneration(userInfo);
+    results.song.success = songResult.success;
+    results.song.title = songResult.title || '';
 
   } catch (error) {
     console.error('Error handling greeting:', error);
@@ -154,11 +169,15 @@ async function handleGreeting(userInfo) {
       'Извини, произошла ошибка. Попробуй ещё раз через минутку!'
     );
   }
+
+  // Send analytics to admin
+  await sendAnalytics(userInfo, results, startTime);
 }
 
 /**
  * Handle image generation and sending
  * @param {Object} userInfo - User information
+ * @returns {Promise<boolean>} Whether image was sent successfully
  */
 async function handleImageGeneration(userInfo) {
   try {
@@ -185,6 +204,7 @@ async function handleImageGeneration(userInfo) {
       });
 
       console.log('Greeting card sent successfully');
+      return true;
     } else {
       // Image generation failed
       await editMessageText(
@@ -192,17 +212,20 @@ async function handleImageGeneration(userInfo) {
         statusMessageId,
         '😔 Не удалось нарисовать открытку, но стихи уже у тебя!'
       );
+      return false;
     }
 
   } catch (error) {
     console.error('Error generating image:', error);
     // Don't send error message, just continue to song
+    return false;
   }
 }
 
 /**
  * Handle song generation and sending
  * @param {Object} userInfo - User information
+ * @returns {Promise<{success: boolean, title: string}>} Result
  */
 async function handleSongGeneration(userInfo) {
   let statusMessageId = null;
@@ -260,6 +283,7 @@ async function handleSongGeneration(userInfo) {
       await deleteMessage(userInfo.chatId, statusMessageId);
 
       console.log('Song sent successfully:', song.title);
+      return { success: true, title: song.title };
     } else {
       // Song generation failed
       await editMessageText(
@@ -267,6 +291,7 @@ async function handleSongGeneration(userInfo) {
         statusMessageId,
         '😔 К сожалению, не удалось создать песню. Но текстовое поздравление уже у тебя!'
       );
+      return { success: false, title: '' };
     }
 
   } catch (error) {
@@ -278,6 +303,38 @@ async function handleSongGeneration(userInfo) {
         '😔 Не удалось создать песню, но поздравление уже отправлено!'
       );
     }
+    return { success: false, title: '' };
+  }
+}
+
+/**
+ * Send analytics notification to admin
+ * @param {Object} userInfo - User information
+ * @param {Object} results - Results of greeting generation
+ * @param {number} startTime - Start timestamp
+ */
+async function sendAnalytics(userInfo, results, startTime) {
+  try {
+    const duration = Math.round((Date.now() - startTime) / 1000);
+    const textStatus = results.text.success ? '✅' : '❌';
+    const imageStatus = results.image.success ? '✅' : '❌';
+    const songStatus = results.song.success ? '✅' : '❌';
+
+    const message = `📊 Новое поздравление отправлено!
+
+👤 Кому: ${userInfo.firstName || 'Unknown'} ${userInfo.lastName || ''}
+🆔 Username: @${userInfo.username || 'нет'}
+🔢 Chat ID: ${userInfo.chatId}
+
+📝 Текст: ${textStatus}
+🎨 Картинка: ${imageStatus}
+🎵 Песня: ${songStatus}${results.song.title ? ` (${results.song.title})` : ''}
+
+⏱ Время: ${duration} сек`;
+
+    await sendMessage(ADMIN_CHAT_ID, message);
+  } catch (error) {
+    console.error('Error sending analytics:', error);
   }
 }
 
