@@ -5,8 +5,11 @@
 
 import 'dotenv/config';
 import express from 'express';
-import { sendMessage, sendTypingAction, extractUserInfo } from './telegram.js';
-import { generateGreeting } from './openrouter.js';
+import { sendMessage, sendTypingAction, editMessageText, extractUserInfo } from './telegram.js';
+import { generateGreetingStream } from './openrouter.js';
+
+// Minimum time between message edits (Telegram rate limit protection)
+const EDIT_THROTTLE_MS = 500;
 
 const app = express();
 app.use(express.json());
@@ -82,7 +85,7 @@ async function handleStart(userInfo) {
 }
 
 /**
- * Handle greeting request
+ * Handle greeting request with streaming response
  * @param {Object} userInfo - User information
  */
 async function handleGreeting(userInfo) {
@@ -92,11 +95,47 @@ async function handleGreeting(userInfo) {
 
     console.log('Generating greeting for:', userInfo);
 
-    // Generate personalized greeting
-    const greeting = await generateGreeting(userInfo);
+    // Send initial message that we'll update
+    const initialMsg = await sendMessage(userInfo.chatId, '✨ Генерирую поздравление...');
+    const messageId = initialMsg.result.message_id;
 
-    // Send the greeting
-    await sendMessage(userInfo.chatId, greeting);
+    let lastEditTime = 0;
+    let pendingText = '';
+    let editTimeout = null;
+
+    // Streaming callback - throttled message updates
+    const onChunk = async (text) => {
+      pendingText = text;
+      const now = Date.now();
+
+      // Clear any pending edit
+      if (editTimeout) {
+        clearTimeout(editTimeout);
+      }
+
+      // If enough time has passed, edit immediately
+      if (now - lastEditTime >= EDIT_THROTTLE_MS) {
+        lastEditTime = now;
+        await editMessageText(userInfo.chatId, messageId, text + ' ▌');
+      } else {
+        // Schedule an edit for later
+        editTimeout = setTimeout(async () => {
+          lastEditTime = Date.now();
+          await editMessageText(userInfo.chatId, messageId, pendingText + ' ▌');
+        }, EDIT_THROTTLE_MS - (now - lastEditTime));
+      }
+    };
+
+    // Generate with streaming
+    const finalGreeting = await generateGreetingStream(userInfo, onChunk);
+
+    // Clear any pending timeout
+    if (editTimeout) {
+      clearTimeout(editTimeout);
+    }
+
+    // Final edit without cursor
+    await editMessageText(userInfo.chatId, messageId, finalGreeting);
 
     console.log('Greeting sent successfully');
   } catch (error) {

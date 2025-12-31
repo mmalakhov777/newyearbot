@@ -44,6 +44,38 @@ export async function sendMessage(chatId, text, options = {}) {
 }
 
 /**
+ * Edit an existing message
+ * @param {number} chatId - Chat ID
+ * @param {number} messageId - Message ID to edit
+ * @param {string} text - New message text
+ * @param {Object} options - Additional options
+ * @returns {Promise<Object>} API response
+ */
+export async function editMessageText(chatId, messageId, text, options = {}) {
+  const response = await fetch(`${getApiUrl()}/editMessageText`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      parse_mode: 'HTML',
+      ...options
+    })
+  });
+
+  const data = await response.json();
+
+  if (!data.ok && !data.description?.includes('message is not modified')) {
+    console.error('Telegram editMessageText error:', data);
+  }
+
+  return data;
+}
+
+/**
  * Send a "typing" action to indicate the bot is processing
  * @param {number} chatId - Chat ID
  * @returns {Promise<Object>} API response
