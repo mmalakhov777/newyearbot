@@ -62,9 +62,9 @@ async function handleUpdate(update) {
 
   console.log(`Message from ${userInfo.firstName || 'Unknown'} (@${userInfo.username || 'no username'}): ${text}`);
 
-  // Handle /start command
+  // Handle /start command - immediately generate greeting
   if (text === '/start') {
-    await handleStart(userInfo);
+    await handleGreeting(userInfo);
     return;
   }
 
