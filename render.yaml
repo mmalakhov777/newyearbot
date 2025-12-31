@@ -2,8 +2,10 @@ services:
   - type: web
     name: newyear-telegram-bot
     runtime: node
+    plan: free
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /
     envVars:
       - key: TELEGRAM_BOT_TOKEN
         sync: false

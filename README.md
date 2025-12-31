@@ -2,6 +2,8 @@
 
 Telegram bot that generates personalized New Year greetings from Maxim using AI (OpenRouter).
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
 ## Setup
 
 1. Install dependencies:
@@ -27,22 +29,14 @@ npm run setup-webhook
 
 ## Deploy to Render
 
-1. Push this repo to GitHub
+1. Click the **Deploy to Render** button above, or push to GitHub and connect manually
 
-2. Go to [render.com](https://render.com) and create a new **Web Service**
+2. Fill in environment variables when prompted:
+   - `TELEGRAM_BOT_TOKEN` - your bot token
+   - `OPENROUTER_API_KEY` - your OpenRouter key
+   - `WEBHOOK_URL` - `https://YOUR-APP-NAME.onrender.com/webhook`
 
-3. Connect your GitHub repo
-
-4. Render will auto-detect settings from `render.yaml`, or configure manually:
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-
-5. Add environment variables in Render dashboard:
-   - `TELEGRAM_BOT_TOKEN` = your bot token
-   - `OPENROUTER_API_KEY` = your OpenRouter key
-   - `WEBHOOK_URL` = `https://YOUR-APP-NAME.onrender.com/webhook`
-
-6. After deploy, set up webhook by running locally:
+3. After deploy, set up the Telegram webhook:
    ```bash
    TELEGRAM_BOT_TOKEN=your_token WEBHOOK_URL=https://your-app.onrender.com/webhook node src/setup-webhook.js
    ```
