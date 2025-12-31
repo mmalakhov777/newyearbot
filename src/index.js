@@ -16,6 +16,9 @@ const EDIT_THROTTLE_MS = 500;
 // Admin chat ID for analytics notifications
 const ADMIN_CHAT_ID = 321097981;
 
+// Track users who already received greetings (in-memory, resets on restart)
+const greetedUsers = new Set();
+
 const app = express();
 app.use(express.json());
 
@@ -62,17 +65,23 @@ async function handleUpdate(update) {
 
   console.log(`Message from ${userInfo.firstName || 'Unknown'} (@${userInfo.username || 'no username'}): ${text}`);
 
-  // Handle /start command - immediately generate greeting
-  if (text === '/start') {
-    await handleGreeting(userInfo);
+  // Check if user already received greeting
+  if (greetedUsers.has(userInfo.chatId)) {
+    await sendMessage(
+      userInfo.chatId,
+      `Всего хорошего понемножку! 🎄
+
+Ты уже получил своё поздравление. Если что-то не дошло — подожди немного, оно в пути!
+
+А если что-то сломалось... простите — одной рукой я режу салаты, а другой делал этого бота 🥗🤖
+
+С Новым Годом! ❤️`
+    );
     return;
   }
 
-  // Handle /greeting command or any other message
-  if (text === '/greeting' || text) {
-    await handleGreeting(userInfo);
-    return;
-  }
+  // Handle /start command or any message - generate greeting
+  await handleGreeting(userInfo);
 }
 
 /**
@@ -94,6 +103,9 @@ async function handleStart(userInfo) {
  * @param {Object} userInfo - User information
  */
 async function handleGreeting(userInfo) {
+  // Mark user as greeted immediately to prevent duplicates
+  greetedUsers.add(userInfo.chatId);
+
   const startTime = Date.now();
   const results = {
     text: { success: false, preview: '' },
@@ -198,10 +210,8 @@ async function handleImageGeneration(userInfo) {
       // Delete status message
       await deleteMessage(userInfo.chatId, statusMessageId);
 
-      // Send the image
-      await sendPhoto(userInfo.chatId, imageUrl, {
-        caption: '🎄 Открытка от Максима ❤️'
-      });
+      // Send the image (no caption)
+      await sendPhoto(userInfo.chatId, imageUrl);
 
       console.log('Greeting card sent successfully');
       return true;
