@@ -5,8 +5,9 @@
 
 import 'dotenv/config';
 import express from 'express';
-import { sendMessage, sendTypingAction, editMessageText, sendAudio, sendChatAction, extractUserInfo } from './telegram.js';
+import { sendMessage, sendTypingAction, editMessageText, sendAudio, sendPhoto, sendChatAction, extractUserInfo } from './telegram.js';
 import { generateGreetingStream } from './openrouter.js';
+import { generateGreetingCard } from './imagegen.js';
 import { generateSong } from './suno.js';
 
 // Minimum time between message edits (Telegram rate limit protection)
@@ -140,7 +141,10 @@ async function handleGreeting(userInfo) {
 
     console.log('Greeting sent successfully');
 
-    // Now generate and send a personalized song
+    // Now generate and send a cringy greeting card
+    await handleImageGeneration(userInfo);
+
+    // Then generate and send a personalized song
     await handleSongGeneration(userInfo);
 
   } catch (error) {
@@ -149,6 +153,50 @@ async function handleGreeting(userInfo) {
       userInfo.chatId,
       'Извини, произошла ошибка. Попробуй ещё раз через минутку!'
     );
+  }
+}
+
+/**
+ * Handle image generation and sending
+ * @param {Object} userInfo - User information
+ */
+async function handleImageGeneration(userInfo) {
+  try {
+    // Send status message
+    const statusMsg = await sendMessage(
+      userInfo.chatId,
+      '🎨 Рисую кринжовую открытку в стиле Поля Чудес...'
+    );
+    const statusMessageId = statusMsg.result.message_id;
+
+    // Show upload photo action
+    await sendChatAction(userInfo.chatId, 'upload_photo');
+
+    // Generate the image
+    const imageUrl = await generateGreetingCard(userInfo);
+
+    if (imageUrl) {
+      // Delete status message
+      await deleteMessage(userInfo.chatId, statusMessageId);
+
+      // Send the image
+      await sendPhoto(userInfo.chatId, imageUrl, {
+        caption: '🎄 Кринжовая открытка от Максима из деревни Нижние Пупки!'
+      });
+
+      console.log('Greeting card sent successfully');
+    } else {
+      // Image generation failed
+      await editMessageText(
+        userInfo.chatId,
+        statusMessageId,
+        '😔 Не удалось нарисовать открытку, но стихи уже у тебя!'
+      );
+    }
+
+  } catch (error) {
+    console.error('Error generating image:', error);
+    // Don't send error message, just continue to song
   }
 }
 

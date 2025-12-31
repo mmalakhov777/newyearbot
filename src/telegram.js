@@ -136,6 +136,75 @@ export async function sendAudio(chatId, audioUrl, options = {}) {
 }
 
 /**
+ * Send a photo to a chat (supports base64 data URL)
+ * @param {number} chatId - Chat ID
+ * @param {string} photo - Photo URL or base64 data URL
+ * @param {Object} options - Additional options (caption, etc.)
+ * @returns {Promise<Object>} API response
+ */
+export async function sendPhoto(chatId, photo, options = {}) {
+  // If it's a base64 data URL, we need to use multipart form data
+  if (photo.startsWith('data:image')) {
+    // Extract base64 data
+    const matches = photo.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) {
+      throw new Error('Invalid base64 image format');
+    }
+
+    const [, format, base64Data] = matches;
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // Create form data
+    const formData = new FormData();
+    formData.append('chat_id', chatId.toString());
+    formData.append('photo', new Blob([buffer], { type: `image/${format}` }), `image.${format}`);
+
+    if (options.caption) {
+      formData.append('caption', options.caption);
+    }
+    if (options.parse_mode) {
+      formData.append('parse_mode', options.parse_mode);
+    }
+
+    const response = await fetch(`${getApiUrl()}/sendPhoto`, {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      console.error('Telegram sendPhoto error:', data);
+      throw new Error(`Telegram API error: ${data.description}`);
+    }
+
+    return data;
+  }
+
+  // Regular URL - use JSON
+  const response = await fetch(`${getApiUrl()}/sendPhoto`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      photo,
+      ...options
+    })
+  });
+
+  const data = await response.json();
+
+  if (!data.ok) {
+    console.error('Telegram sendPhoto error:', data);
+    throw new Error(`Telegram API error: ${data.description}`);
+  }
+
+  return data;
+}
+
+/**
  * Set up webhook for the bot
  * @param {string} webhookUrl - Public HTTPS URL for webhook
  * @returns {Promise<Object>} API response
